@@ -1,60 +1,47 @@
-'use strict'
+import test from 'ava'
+import mockedEnv from 'mocked-env'
+import listen from 'test-listen'
 
-const test = require('ava')
-const listen = require('test-listen')
-const fetch = require('node-fetch')
-const mockedEnv = require('mocked-env')
-
-const server = require('../src/server')
-
-const Domain = require('../src/models/Domain')
-const { connectToDatabase, disconnectFromDatabase } = require('./resolvers/_utils')
+import Domain from '../src/models/Domain.js'
+import server from '../src/server.js'
+import { api } from './_utils.js'
+import { cleanup, connectToDatabase } from './resolvers/_utils.js'
 
 const base = listen(server)
 
 test.before(connectToDatabase)
-test.after.always(disconnectFromDatabase)
+test.after.always(cleanup(server))
 test.beforeEach(async (t) => {
-	t.context.domain1 = await Domain.create({ title: 'fqdn.example.com' })
-	t.context.domain2 = await Domain.create({ title: 'not-an-fqdn' })
+  t.context.domain1 = await Domain.create({ title: 'fqdn.example.com' })
+  t.context.domain2 = await Domain.create({ title: 'No fqdn' })
 })
 test.afterEach.always(async (t) => {
-	await Domain.findOneAndDelete({ id: t.context.domain1.id })
-	await Domain.findOneAndDelete({ id: t.context.domain2.id })
+  await Domain.findOneAndDelete({ id: t.context.domain1.id })
+  await Domain.findOneAndDelete({ id: t.context.domain2.id })
 })
 
-test('return cors headers for domain with fully qualifed domain name', async (t) => {
-	const url = new URL('/api', await base)
-	const origin = 'fqdn.example.com'
+test('return cors headers based on fully qualifed domain names', async (t) => {
+  const restore = mockedEnv({
+    ACKEE_AUTO_ORIGIN: 'true',
+  })
 
-	const restore = mockedEnv({
-		ACKEE_AUTO_ORIGIN: 'true',
-	})
+  const { headers: fqdnHeaders } = await api(base, { query: '{ __typename }' }, null, {
+    Origin: 'https://fqdn.example.com',
+  })
 
-	const { headers } = await fetch(url.href, { headers: { Host: origin } })
+  t.is(fqdnHeaders.get('Access-Control-Allow-Origin'), 'https://fqdn.example.com')
+  t.is(fqdnHeaders.get('Access-Control-Allow-Methods'), 'GET, POST, PATCH, OPTIONS')
+  t.is(fqdnHeaders.get('Access-Control-Allow-Headers'), 'Content-Type, Authorization, Time-Zone')
+  t.is(fqdnHeaders.get('Access-Control-Allow-Credentials'), 'true')
 
-	t.is(headers.get('Access-Control-Allow-Origin'), origin)
-	t.is(headers.get('Access-Control-Allow-Methods'), 'GET, POST, PATCH, OPTIONS')
-	t.is(headers.get('Access-Control-Allow-Headers'), 'Content-Type, Authorization, Time-Zone')
-	t.is(headers.get('Access-Control-Allow-Credentials'), 'true')
+  const { headers: noFqdnHeaders } = await api(base, { query: '{ __typename }' }, null, {
+    Origin: 'https://not-in-list.example.com',
+  })
 
-	restore()
-})
+  t.is(noFqdnHeaders.get('Access-Control-Allow-Origin'), null)
+  t.is(noFqdnHeaders.get('Access-Control-Allow-Methods'), null)
+  t.is(noFqdnHeaders.get('Access-Control-Allow-Headers'), null)
+  t.is(noFqdnHeaders.get('Access-Control-Allow-Credentials'), null)
 
-test('do not return cors headers for domain that is not a fully qualified domain name', async (t) => {
-	const url = new URL('/api', await base)
-	const origin = 'not-an-fqdn'
-
-	const restore = mockedEnv({
-		ACKEE_AUTO_ORIGIN: 'true',
-	})
-
-	const { headers } = await fetch(url.href, { headers: { Host: origin } })
-
-	t.is(headers.get('Access-Control-Allow-Origin'), null)
-	t.is(headers.get('Access-Control-Allow-Methods'), null)
-	t.is(headers.get('Access-Control-Allow-Headers'), null)
-	t.is(headers.get('Access-Control-Allow-Credentials'), null)
-
-	restore()
+  restore()
 })
