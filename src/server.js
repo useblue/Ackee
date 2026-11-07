@@ -1,16 +1,17 @@
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer'
 import { expressMiddleware } from '@as-integrations/express5'
 import express from 'express'
+import helmet from 'helmet'
 import { readFile } from 'node:fs/promises'
 import http from 'node:http'
 import path from 'node:path'
 
 import config from './utils/config.js'
-import createApolloServer from './utils/createApolloServer.js'
-import { createExpressContext } from './utils/createContext.js'
-import * as customTracker from './utils/customTracker.js'
-import findMatchingOrigin from './utils/findMatchingOrigin.js'
-import KnownError from './utils/KnownError.js'
+import createApolloServer from './utils/create-apollo-server.js'
+import { createExpressContext } from './utils/create-context.js'
+import * as customTracker from './utils/custom-tracker.js'
+import findMatchingOrigin from './utils/find-matching-origin.js'
+import KnownError from './utils/known-error.js'
 import signale from './utils/signale.js'
 
 const __dirname = import.meta.dirname
@@ -33,7 +34,7 @@ const handleGraphError = (formattedError, error) => {
   const isKnownError = suitableError instanceof KnownError
 
   // Only log the full error stack when the error isn't a known response
-  if (isKnownError === false) {
+  if (!isKnownError) {
     signale.fatal(suitableError)
     return formattedError
   }
@@ -57,6 +58,16 @@ const attachCorsHeaders = async (request, response, next) => {
 }
 
 const app = express()
+
+// Disable the X-Powered-By header and set other security headers
+app.use(
+  helmet({
+    // Allow the tracker and UI assets to be loaded cross-origin
+    crossOriginResourcePolicy: false,
+    // The generated UI contains an inline configuration script.
+    contentSecurityPolicy: false,
+  }),
+)
 
 // Create HTTP server before Apollo Server (needed for drain plugin)
 const server = http.createServer(app)

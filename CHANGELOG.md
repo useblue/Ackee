@@ -2,7 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [3.7.1] - 2026-10-23
+
+### Security
+
+- Docker image now uses an updated `node:24-alpine` base image with security fixes
+
+## [3.7.0] - 2026-10-19
+
+### Changed
+
+- Context menus, popovers, and tooltips are now animated
+- Updated selection look of menus
+- The Live badge on active visitors now pulses to signal real-time data
+- Modals now fade and slide in and out
+- Bar chart bars now grow in sequence
+- Chart bars now have a subtle gradient, and chart and list divider lines fade at the edges
+- List items in cards now fade in sequentially
+- Change badge icons now rotate on appearance
+- Change badges now show 0% when comparison data is unavailable
+- Facts values now use a subtle diagonal white gradient
+- UI styles now use CSS imports and nesting instead of Sass
+- Internal modernization and code cleanup
+
+### Fixed
+
+- Opening duration details previously crashed the UI
+- Cookie opt-outs now require an exact `ackee_ignore=1` cookie instead of matching substrings (thanks @Davidowi2, #409)
+
+## [3.6.1] - 2026-09-18
+
+### Changed
+
+- Action values can now be omitted or set to `null` when creating actions, matching the existing support for resetting values on update
+- HTTP responses now include security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, etc.) via `helmet`
+- The `Time-Zone` request header is now validated before use; invalid values fall back to the server timezone silently
+- Free-text fields in the database (`source`, `deviceName`, `deviceManufacturer`, `osName`, `osVersion`, `browserName`, `browserVersion`, `title`, `key`, `details`) now enforce maximum length limits to prevent storage abuse
 
 ## [3.6.0] - 2026-04-08
 
@@ -43,7 +80,7 @@ Small fixes, internal improvements and dependency updates.
 
 ## [3.4.2] - 2022-12-17
 
-## Changed
+### Changed
 
 - Adjust Docker to run as non-root user (thanks @rjhancock, #309, #337)
 
@@ -53,7 +90,7 @@ Small fixes, internal improvements and dependency updates.
 
 ## [3.4.1] - 2022-05-21
 
-## Fixed
+### Fixed
 
 - Build failing on Netlify (thanks @adityatelange, #333)
 - Vercel not attaching CORS headers because of unsupported `multiValueHeaders` (thanks @birjj, #330)
@@ -233,6 +270,11 @@ The `id` of requested referrers was always a URL, but has been changed to a stri
 
 ### Changed
 
+- `Access-Control-Allow-Origin: "*"` not recommended
+- New `Access-Control-Allow-Credentials` header required
+- ackee-tracker with new `.create` and `.record` syntax
+- Referrers require `ReferrerType` in GraphQL API
+- Referrers can return non URL ids via GraphQL API
 - Compiled source files are now part of the repo
 - Docker container size has been reduced (again)
 - Updated build tools allow us to use ~60% less JS in the UI
@@ -406,7 +448,7 @@ The first major back-end and front-end rewrite of Ackee with new API, dashboard,
 - Switch between daily, monthly and yearly views
 - `ACKEE_ALLOW_ORIGIN` now supports multiple domains (#79 #82, thanks @jaryl)
 
-### Improved
+### Changed
 
 - JS error handling with React error boundary
 
